@@ -1,65 +1,264 @@
-import Image from "next/image";
+
+"use client";
+
+
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [books, setBooks] = useState([]);
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedChapter, setSelectedChapter] = useState(null);
+  const [chapterData, setChapterData] = useState(null);
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+
+  // Group chapters by book name
+  function groupByBook(chapters) {
+    const grouped = {};
+    chapters.forEach((chapter) => {
+      if (!grouped[chapter.book_name]) {
+        grouped[chapter.book_name] = {
+          book_name: chapter.book_name,
+          chapters: [],
+        };
+      }
+      grouped[chapter.book_name].chapters.push(chapter);
+    });
+    return Object.values(grouped);
+  }
+
+  // Handle book selection
+  const handleBookClick = (book) => {
+    setSelectedBook(book);
+    setSelectedChapter(null);
+    setChapterData(null);
+    setCurrentChunkIndex(0);
+  };
+    // Fetch all books/chapters on mount
+  useEffect(() => {
+    fetch("/api/fetchAll")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          // Group chapters by book_name
+          const groupedBooks = groupByBook(data.data);
+          setBooks(groupedBooks);
+        }
+      })
+      .catch((error) => console.error("Error fetching books:", error));
+  }, []);
+
+
+  // Handle chapter selection
+  const handleChapterClick = (chapter) => {
+    setSelectedChapter(chapter);
+    
+    // Fetch specific chapter data
+    fetch(`/api/fetch?book_name=${chapter.book_name}&chapter_num=${chapter.chapter_num}`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Chapter data response:", data);
+        if (data.success && data.data.length > 0) {
+          console.log("Audio script:", data.data[0].audio_script);
+          console.log("First chunk audio URL:", data.data[0].audio_script[0]?.audio_url);
+          setChapterData(data.data[0]);
+          setCurrentChunkIndex(0);
+          setIsPlaying(false);
+        } else {
+          console.error("No chapter data found");
+        }
+      })
+      .catch((error) => console.error("Error fetching chapter:", error));
+  };
+
+  // Handle audio ended - play next chunk
+  const handleAudioEnded = () => {
+    if (chapterData && currentChunkIndex < chapterData.audio_script.length - 1) {
+      setCurrentChunkIndex(currentChunkIndex + 1);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
+  // Handle next chunk
+  const handleNext = () => {
+    if (chapterData && currentChunkIndex < chapterData.audio_script.length - 1) {
+      setCurrentChunkIndex(currentChunkIndex + 1);
+    }
+  };
+
+  // Handle previous chunk
+  const handlePrevious = () => {
+    if (currentChunkIndex > 0) {
+      setCurrentChunkIndex(currentChunkIndex - 1);
+    }
+  };
+
+  const currentChunk = chapterData?.audio_script?.[currentChunkIndex];
+
+  // Log current chunk for debugging
+  useEffect(() => {
+    if (currentChunk) {
+      console.log("Current chunk index:", currentChunkIndex);
+      console.log("Current chunk:", currentChunk);
+      console.log("Audio URL:", currentChunk.audio_url);
+    }
+  }, [currentChunk, currentChunkIndex]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
+      <div className="container mx-auto px-2 sm:px-4 md:px-6 py-4 sm:py-6">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+          Audio Book Library
+        </h1>
+
+        {/* Books List */}
+        {!selectedBook && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            {books.map((book, idx) => (
+              <div
+                key={idx}
+                onClick={() => handleBookClick(book)}
+                className="bg-white/10 backdrop-blur-lg rounded-lg p-4 sm:p-6 cursor-pointer hover:bg-white/20 transition-all transform hover:scale-105 border border-purple-500/30"
+              >
+                <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-purple-300">
+                  {book.book_name.replace(/([A-Z])/g, " $1").trim()}
+                </h2>
+                <p className="text-gray-300 text-sm sm:text-base">
+                  {book.chapters.length} Chapter{book.chapters.length > 1 ? "s" : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Book Details */}
+        {selectedBook && !selectedChapter && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 sm:p-8 border border-purple-500/30">
+            <button
+              onClick={() => setSelectedBook(null)}
+              className="mb-4 px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition text-sm sm:text-base"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              ← Back to Books
+            </button>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-purple-300">
+              {selectedBook.book_name.replace(/([A-Z])/g, " $1").trim()}
+            </h2>
+            <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4">Chapters:</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+              {selectedBook.chapters
+                .sort((a, b) => parseInt(a.chapter_num) - parseInt(b.chapter_num))
+                .map((chapter) => (
+                  <div
+                    key={chapter._id}
+                    onClick={() => handleChapterClick(chapter)}
+                    className="bg-white/10 p-3 sm:p-4 rounded-lg cursor-pointer hover:bg-white/20 transition border border-purple-400/20"
+                  >
+                    <h4 className="font-semibold text-base sm:text-lg text-purple-200">
+                      Chapter {chapter.chapter_num}: {chapter.title || "Untitled"}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-2">
+                      {chapter.total_chunks} audio chunks
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chapter Player */}
+        {chapterData && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 sm:p-8 border border-purple-500/30">
+            <button
+              onClick={() => {
+                setSelectedChapter(null);
+                setChapterData(null);
+                setCurrentChunkIndex(0);
+              }}
+              className="mb-4 px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition text-sm sm:text-base"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+              ← Back to Chapters
+            </button>
+
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-purple-300">
+              Chapter {chapterData.chapter_num}: {chapterData.title || "Untitled"}
+            </h2>
+            <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
+              Part {currentChunkIndex + 1} of {chapterData.audio_script.length}
+            </p>
+
+            {/* Text Display */}
+            {currentChunk && (
+              <div className="bg-black/30 p-4 sm:p-8 rounded-lg mb-4 sm:mb-8 h-[60vh] sm:h-[70vh] flex flex-col justify-center items-center overflow-y-auto">
+                <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-purple-200">Now Playing:</h3>
+                <p className="text-gray-200 leading-relaxed whitespace-pre-wrap text-xl sm:text-2xl text-center">
+                  {currentChunk.original_text}
+                </p>
+              </div>
+            )}
+
+            {/* Audio Player */}
+            {currentChunk?.audio_url && (
+              <div className="bg-black/30 p-4 sm:p-6 rounded-lg">
+                <audio
+                  key={currentChunkIndex}
+                  controls
+                  autoPlay
+                  onEnded={handleAudioEnded}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onError={(e) => console.error("Audio error:", e)}
+                  onLoadStart={() => console.log("Audio loading:", currentChunk.audio_url)}
+                  className="w-full mb-2 sm:mb-4"
+                  src={currentChunk.audio_url}
+                >
+                  Your browser does not support the audio element.
+                </audio>
+                <p className="text-xs text-gray-400 mb-2 sm:mb-4 break-all">Audio URL: {currentChunk.audio_url}</p>
+
+                {/* Navigation Controls */}
+                <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                  <button
+                    onClick={handlePrevious}
+                    disabled={currentChunkIndex === 0}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition text-sm sm:text-base"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    disabled={currentChunkIndex === chapterData.audio_script.length - 1}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition text-sm sm:text-base"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* All Chunks List */}
+            <div className="mt-6 sm:mt-8">
+              <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4 text-purple-200">All Parts:</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-1 sm:gap-2">
+                {chapterData.audio_script.map((chunk, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentChunkIndex(idx)}
+                    className={`p-2 sm:p-3 rounded-lg transition text-xs sm:text-base ${
+                      idx === currentChunkIndex
+                        ? "bg-purple-600 font-bold"
+                        : "bg-white/10 hover:bg-white/20"
+                    }`}
+                  >
+                    Part {idx + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
