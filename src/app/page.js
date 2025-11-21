@@ -1,11 +1,12 @@
-import { Text } from 'react-native';
+
+
+"use client";
 
 import { useState, useEffect } from 'react';
 
 
 
 
-"use client";
 
 
 export default function Home() {
