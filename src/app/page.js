@@ -1,8 +1,11 @@
 
+
+
+
+
 "use client";
+import { useState, useEffect } from 'react';
 
-
-import { useEffect, useState } from "react";
 
 export default function Home() {
   const [books, setBooks] = useState([]);
@@ -96,6 +99,58 @@ export default function Home() {
   };
 
   const currentChunk = chapterData?.audio_script?.[currentChunkIndex];
+  // Note-taking state
+  const [note, setNote] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [noteLoading, setNoteLoading] = useState(false);
+  const [noteFetching, setNoteFetching] = useState(false);
+
+  // Fetch existing note for this chunk from backend
+  useEffect(() => {
+    async function fetchNote() {
+      if (!chapterData) return;
+      setNoteFetching(true);
+      setNoteSaved(false);
+      try {
+        const res = await fetch(`/api/saveNote?book_name=${encodeURIComponent(chapterData.book_name)}&chapter_num=${encodeURIComponent(chapterData.chapter_num)}&chunk_index=${currentChunkIndex}`);
+        const data = await res.json();
+        if (data.success) {
+          setNote(data.note || "");
+        } else {
+          setNote("");
+        }
+      } catch {
+        setNote("");
+      }
+      setNoteFetching(false);
+    }
+    fetchNote();
+  }, [currentChunkIndex, chapterData]);
+
+  // Save note to backend
+  async function handleSaveNote() {
+    if (!note.trim()) return;
+    setNoteLoading(true);
+    try {
+      const res = await fetch("/api/saveNote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          book_name: chapterData.book_name,
+          chapter_num: chapterData.chapter_num,
+          chunk_index: currentChunkIndex,
+          note,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNoteSaved(true);
+      }
+    } catch (err) {
+      // Optionally show error
+    }
+    setNoteLoading(false);
+  }
 
   // Log current chunk for debugging
   useEffect(() => {
@@ -107,9 +162,9 @@ export default function Home() {
   }, [currentChunk, currentChunkIndex]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
+    <div className="min-h-screen bg-linear-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
       <div className="container mx-auto px-2 sm:px-4 md:px-6 py-4 sm:py-6">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center bg-clip-text text-transparent bg-linear-to-r from-purple-400 to-pink-600">
           Audio Book Library
         </h1>
 
@@ -195,8 +250,27 @@ export default function Home() {
                 <p className="text-gray-200 leading-relaxed whitespace-pre-wrap text-xl sm:text-2xl text-center">
                   {currentChunk.original_text}
                 </p>
+               
               </div>
             )}
+             {/* Note Taking UI */}
+                <div className="w-full max-w-2xl mt-8">
+                  <h4 className="text-lg font-semibold mb-2 text-purple-300">Your Notes for this Part:</h4>
+                  <textarea
+                    className="w-full h-24 p-3 rounded-lg bg-gray-900 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none mb-2"
+                    value={note}
+                    onChange={e => { setNote(e.target.value); setNoteSaved(false); }}
+                    placeholder={noteFetching ? "Loading note..." : "Type your notes here..."}
+                    disabled={noteFetching}
+                  />
+                  <button
+                    className="px-4 py-2 mb-5 bg-purple-600 hover:bg-purple-700 rounded-lg transition text-white font-semibold disabled:bg-gray-600"
+                    onClick={handleSaveNote}
+                    disabled={noteLoading || noteFetching || !note.trim()}
+                  >
+                    {noteLoading ? "Saving..." : noteSaved ? "Saved!" : "Save Note"}
+                  </button>
+                </div>
 
             {/* Audio Player */}
             {currentChunk?.audio_url && (

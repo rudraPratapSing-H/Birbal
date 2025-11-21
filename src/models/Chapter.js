@@ -4,6 +4,7 @@ const AudioScriptChunkSchema = new mongoose.Schema({
   original_text: { type: String },
   ssml: { type: String },
   audio_url: { type: String },
+  note: { type: String ,default: ""},
   error: { type: String },
 }, { _id: false });
 
