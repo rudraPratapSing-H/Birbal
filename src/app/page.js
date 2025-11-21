@@ -1,10 +1,11 @@
+import { Text } from 'react-native';
 
+import { useState, useEffect } from 'react';
 
 
 
 
 "use client";
-import { useState, useEffect } from 'react';
 
 
 export default function Home() {
@@ -290,6 +291,15 @@ export default function Home() {
                   Your browser does not support the audio element.
                 </audio>
                 <p className="text-xs text-gray-400 mb-2 sm:mb-4 break-all">Audio URL: {currentChunk.audio_url}</p>
+
+                {/* Preload next audio chunk in background */}
+                {chapterData && currentChunkIndex < chapterData.audio_script.length - 1 && (
+                  <audio
+                    src={chapterData.audio_script[currentChunkIndex + 1].audio_url}
+                    preload="auto"
+                    style={{ display: "none" }}
+                  />
+                )}
 
                 {/* Navigation Controls */}
                 <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
