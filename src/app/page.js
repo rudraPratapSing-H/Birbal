@@ -1,8 +1,11 @@
 
-
 "use client";
+import { useRef, useState, useEffect } from 'react';
 
-import { useState, useEffect } from 'react';
+
+
+
+
 
 
 
@@ -16,6 +19,21 @@ export default function Home() {
   const [chapterData, setChapterData] = useState(null);
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const playbackSpeedRef = useRef(playbackSpeed);
+  const audioRef = useRef(null);
+      // Keep ref in sync with state
+      useEffect(() => {
+        playbackSpeedRef.current = playbackSpeed;
+      }, [playbackSpeed]);
+
+      // Set playback speed on audio change or speed change
+      useEffect(() => {
+        if (audioRef.current) {
+          audioRef.current.playbackRate = playbackSpeedRef.current;
+        }
+      }, [playbackSpeed, currentChunkIndex]);
+    // Playback speed state
 
 
   // Group chapters by book name
@@ -227,6 +245,25 @@ export default function Home() {
         {/* Chapter Player */}
         {chapterData && (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 sm:p-8 border border-purple-500/30">
+            {/* Playback speed control - improved UI */}
+            <div className="mb-4 flex items-center justify-end">
+              <label htmlFor="playbackSpeed" className="mr-2 text-base text-purple-200 font-semibold">
+                Playback Speed:
+              </label>
+              <select
+                id="playbackSpeed"
+                value={playbackSpeed}
+                onChange={e => setPlaybackSpeed(Number(e.target.value))}
+                className="px-3 py-1 rounded bg-gray-800 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              >
+                <option value={0.5}>0.5x</option>
+                <option value={0.75}>0.75x</option>
+                <option value={1}>1x</option>
+                <option value={1.25}>1.25x</option>
+                <option value={1.5}>1.5x</option>
+                <option value={2}>2x</option>
+              </select>
+            </div>
             <button
               onClick={() => {
                 setSelectedChapter(null);
@@ -279,13 +316,24 @@ export default function Home() {
               <div className="bg-black/30 p-4 sm:p-6 rounded-lg">
                 <audio
                   key={currentChunkIndex}
+                  ref={audioRef}
                   controls
                   autoPlay
                   onEnded={handleAudioEnded}
-                  onPlay={() => setIsPlaying(true)}
+                  onPlay={() => {
+                    setIsPlaying(true);
+                    if (audioRef.current) {
+                      audioRef.current.playbackRate = playbackSpeedRef.current;
+                    }
+                  }}
                   onPause={() => setIsPlaying(false)}
                   onError={(e) => console.error("Audio error:", e)}
-                  onLoadStart={() => console.log("Audio loading:", currentChunk.audio_url)}
+                  onLoadStart={() => {
+                    console.log("Audio loading:", currentChunk.audio_url);
+                    if (audioRef.current) {
+                      audioRef.current.playbackRate = playbackSpeedRef.current;
+                    }
+                  }}
                   className="w-full mb-2 sm:mb-4"
                   src={currentChunk.audio_url}
                 >
