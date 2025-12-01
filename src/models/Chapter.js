@@ -13,6 +13,7 @@ const ChapterSchema = new mongoose.Schema({
   title: { type: String },
   created_at: { type: Date },
   updated_at: { type: Date },
+  audio_script: { type: [AudioScriptChunkSchema], default: [] }, // <-- ADD THIS LINE
 }, { collection: 'chapters' });
 
 export default mongoose.models.Chapter || mongoose.model('Chapter', ChapterSchema);
