@@ -19,8 +19,8 @@ export default function NotesView({ onNavigateToAudio }) {
     try {
       setLoading(true);
       const url = filterBook 
-        ? `http://localhost:3000/api/getAllNotes?book_name=${encodeURIComponent(filterBook)}`
-        : `http://localhost:3000/api/getAllNotes`;
+        ? `/api/getAllNotes?book_name=${encodeURIComponent(filterBook)}`
+        : `/api/getAllNotes`;
       
       const res = await fetch(url);
       const data = await res.json();
