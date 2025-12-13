@@ -1,0 +1,7 @@
+feat: add notes view with audio navigation
+
+- Created /api/getAllNotes endpoint to fetch all user notes across books
+- Built NotesView component with filtering by book and timestamp sorting
+- Added toggle between Library and Notes views in main page
+- Implemented direct navigation from notes to specific audio chunks
+- Users can now view all their notes and play corresponding audio with one click

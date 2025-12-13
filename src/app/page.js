@@ -7,6 +7,7 @@ import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import Player from "@/components/Player";
 import BookCard from "@/components/books/BookCard";
 import ChapterList from "@/components/books/ChapterList";
+import NotesView from "@/components/NotesView";
 
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -21,6 +22,7 @@ function HomeContent() {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [chapterData, setChapterData] = useState(null);
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
+  const [viewMode, setViewMode] = useState('library'); // 'library' or 'notes'
   const { playbackSpeed, setPlaybackSpeed, isPlaying, setIsPlaying } = usePlayer();
   // Notes hook
   const notesProps = useNotes({
@@ -112,15 +114,72 @@ function HomeContent() {
       setCurrentChunkIndex(currentChunkIndex - 1);
     }
   };
+
+  // Navigate to audio from notes view
+  const handleNavigateToAudio = ({ book_name, chapter_num, chunk_index }) => {
+    // First, find the book
+    const book = books.find(b => b.book_name === book_name);
+    if (!book) {
+      console.error('Book not found');
+      return;
+    }
+
+    // Find the chapter
+    const chapter = book.chapters.find(c => c.chapter_num === chapter_num);
+    if (!chapter) {
+      console.error('Chapter not found');
+      return;
+    }
+
+    // Fetch chapter data and navigate
+    fetch(`/api/fetch?book_name=${book_name}&chapter_num=${chapter_num}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data.length > 0) {
+          setViewMode('library');
+          setSelectedBook(book);
+          setSelectedChapter(chapter);
+          setChapterData(data.data[0]);
+          setCurrentChunkIndex(chunk_index);
+          setIsPlaying(false);
+        }
+      })
+      .catch((error) => console.error('Error fetching chapter:', error));
+  };
+
   const currentChunk = chapterData?.audio_script?.[currentChunkIndex];
 
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
       <div className="container mx-auto px-2 sm:px-4 md:px-6 py-4 sm:py-6">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center bg-clip-text text-transparent bg-linear-to-r from-purple-400 to-pink-600">
-          Audio Book Library
-        </h1>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-4">
+          <h1 className="text-3xl sm:text-4xl font-bold text-center bg-clip-text text-transparent bg-linear-to-r from-purple-400 to-pink-600">
+            Audio Book Library
+          </h1>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setViewMode('library')}
+              className={`px-4 py-2 ${viewMode === 'library' ? 'bg-purple-600' : 'bg-gray-600'} hover:bg-purple-700 text-white`}
+            >
+              📚 Library
+            </Button>
+            <Button
+              onClick={() => setViewMode('notes')}
+              className={`px-4 py-2 ${viewMode === 'notes' ? 'bg-purple-600' : 'bg-gray-600'} hover:bg-purple-700 text-white`}
+            >
+              📝 My Notes
+            </Button>
+          </div>
+        </div>
+        {/* Notes View */}
+        {viewMode === 'notes' && (
+          <NotesView onNavigateToAudio={handleNavigateToAudio} />
+        )}
+
+        {/* Library View */}
+        {viewMode === 'library' && (
+          <>
         {/* Books List */}
         {/* Book List */}
         {!selectedBook && (
@@ -179,6 +238,8 @@ function HomeContent() {
               setCurrentChunkIndex(0);
             }}
           />
+        )}
+          </>
         )}
       </div>
     </div>
