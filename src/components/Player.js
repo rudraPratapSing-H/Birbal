@@ -9,7 +9,7 @@ import AudioChunkList from "@/components/player/AudioChunkList";
 import Card from "@/components/ui/Card";
 import Spinner from "@/components/ui/Spinner";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 export default function Player({
   chapterData,
@@ -28,6 +28,22 @@ export default function Player({
 }) {
   const currentChunk = chapterData?.audio_script?.[currentChunkIndex];
   const audioRef = useRef(null);
+  const [showPdf, setShowPdf] = useState(true);
+
+  // Extract book name from audio URL
+  const getBookPdfPath = () => {
+    if (!currentChunk?.audio_url) return null;
+    // Extract book name from URL like: https://storage.googleapis.com/subtleartofnotgivingafuck/audio/subtleArtOfNotGivingAFuck/chapter_4_chunk_1.mp3
+    const match = currentChunk.audio_url.match(/\/audio\/([^\/]+)\//);
+    if (match && match[1]) {
+      console.log("Extracted book name from URL:", match[1]);
+      return `/books/${match[1]}.pdf`;
+    }
+    console.log("Could not extract book name from URL:", currentChunk.audio_url);
+    return null;
+  };
+
+  const pdfPath = getBookPdfPath();
 
   // Keep audio playbackRate in sync with playbackSpeed
   useEffect(() => {
@@ -38,12 +54,26 @@ export default function Player({
 
   return (
     <Card className="p-4 sm:p-8">
-      <PlaybackSpeedSelector playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} />
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          <button
+            className="px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm sm:text-base font-semibold"
+            onClick={onBackToChapters}
+          >
+            ← Back to chapters
+          </button>
+          {pdfPath && (
+            <button
+              className={`px-3 py-2 sm:px-4 sm:py-2 ${showPdf ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-600 hover:bg-gray-700'} text-white rounded-lg transition text-sm sm:text-base font-semibold`}
+              onClick={() => setShowPdf(!showPdf)}
+            >
+              {showPdf ? '📖 Hide Book' : '📖 Show Book'}
+            </button>
+          )}
+        </div>
+        <PlaybackSpeedSelector playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} />
+      </div>
 
-      <button
-        className="mb-4 px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm sm:text-base font-semibold"
-        
-        onClick ={onBackToChapters}> back to chapters </button>
       <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-purple-300">
         Chapter {chapterData.chapter_num}: {chapterData.title || "Untitled"}
       </h2>
@@ -51,19 +81,32 @@ export default function Player({
         Part {currentChunkIndex + 1} of {chapterData.audio_script.length}
       </p>
 
+      {/* PDF Viewer */}
+      {pdfPath && showPdf && (
+        <div className="mb-4 sm:mb-8">
+          <div className="bg-black/30 p-2 rounded-lg">
+            <iframe
+              src={pdfPath}
+              className="w-full h-[60vh] sm:h-[70vh] rounded-lg"
+              title="Book PDF"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Text Display */}
-      {currentChunk ? (
+      {!showPdf && currentChunk ? (
         <div className="bg-black/30 p-4 sm:p-8 rounded-lg mb-4 sm:mb-8 h-[60vh] sm:h-[70vh] flex flex-col justify-center items-center overflow-y-auto">
           <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-purple-200">Now Playing:</h3>
           <p className="text-gray-200 leading-relaxed whitespace-pre-wrap text-xl sm:text-2xl text-center">
             {currentChunk.original_text}
           </p>
         </div>
-      ) : (
+      ) : !showPdf ? (
         <div className="flex justify-center items-center h-40">
           <Spinner className="h-8 w-8" />
         </div>
-      )}
+      ) : null}
 
       {/* Note Taking UI */}
       <div className="w-full max-w-2xl mt-8">
