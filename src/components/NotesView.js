@@ -7,25 +7,28 @@ import Spinner from "@/components/ui/Spinner";
 
 export default function NotesView({ onNavigateToAudio }) {
   const [notes, setNotes] = useState([]);
+  const [allNotes, setAllNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterBook, setFilterBook] = useState("");
+  const [filterChapter, setFilterChapter] = useState("");
 
   useEffect(() => {
     fetchAllNotes();
-  }, [filterBook]);
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [filterBook, filterChapter, allNotes]);
 
   const fetchAllNotes = async () => {
     try {
       setLoading(true);
-      const url = filterBook 
-        ? `/api/getAllNotes?book_name=${encodeURIComponent(filterBook)}`
-        : `/api/getAllNotes`;
-      
-      const res = await fetch(url);
+      const res = await fetch(`/api/getAllNotes`);
       const data = await res.json();
       
       if (data.success) {
+        setAllNotes(data.data);
         setNotes(data.data);
       } else {
         setError(data.error);
@@ -35,6 +38,20 @@ export default function NotesView({ onNavigateToAudio }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...allNotes];
+    
+    if (filterBook) {
+      filtered = filtered.filter(note => note.book_name === filterBook);
+    }
+    
+    if (filterChapter) {
+      filtered = filtered.filter(note => note.chapter_num === filterChapter);
+    }
+    
+    setNotes(filtered);
   };
 
   const handlePlayAudio = (note) => {
@@ -48,8 +65,16 @@ export default function NotesView({ onNavigateToAudio }) {
   };
 
   const getUniqueBooks = () => {
-    const books = [...new Set(notes.map(n => n.book_name))];
+    const books = [...new Set(allNotes.map(n => n.book_name))];
     return books;
+  };
+
+  const getUniqueChapters = () => {
+    const filtered = filterBook 
+      ? allNotes.filter(n => n.book_name === filterBook)
+      : allNotes;
+    const chapters = [...new Set(filtered.map(n => n.chapter_num))];
+    return chapters.sort((a, b) => Number(a) - Number(b));
   };
 
   if (loading) {
@@ -76,30 +101,69 @@ export default function NotesView({ onNavigateToAudio }) {
             My Notes
           </h2>
           
-          {/* Filter by book */}
+          {/* Filters */}
           {getUniqueBooks().length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Button
-                onClick={() => setFilterBook("")}
-                className={`px-3 py-1.5 text-sm ${!filterBook ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'} transition-colors`}
-              >
-                All Books
-              </Button>
-              {getUniqueBooks().map(book => (
-                <Button
-                  key={book}
-                  onClick={() => setFilterBook(book)}
-                  className={`px-3 py-1.5 text-sm ${filterBook === book ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'} transition-colors`}
+            <div className="space-y-4 mb-4">
+              {/* Book Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Filter by Book
+                </label>
+                <select
+                  value={filterBook}
+                  onChange={(e) => {
+                    setFilterBook(e.target.value);
+                    setFilterChapter("");
+                  }}
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 >
-                  {book.replace(/([A-Z])/g, ' $1').trim()}
-                </Button>
-              ))}
+                  <option value="">All Books</option>
+                  {getUniqueBooks().map(book => (
+                    <option key={book} value={book}>
+                      {book.replace(/([A-Z])/g, ' $1').trim()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Chapter Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Filter by Chapter
+                </label>
+                <select
+                  value={filterChapter}
+                  onChange={(e) => setFilterChapter(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!filterBook && getUniqueChapters().length > 20}
+                >
+                  <option value="">All Chapters</option>
+                  {getUniqueChapters().map(chapter => (
+                    <option key={chapter} value={chapter}>
+                      Chapter {chapter}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
-          <p className="text-gray-400 text-sm">
-            {notes.length} {notes.length === 1 ? 'note' : 'notes'} found
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="text-gray-400 text-sm">
+              {notes.length} {notes.length === 1 ? 'note' : 'notes'} found
+            </p>
+            {(filterBook || filterChapter) && (
+              <Button
+                onClick={() => {
+                  setFilterBook("");
+                  setFilterChapter("");
+                }}
+                className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
         </div>
 
         {notes.length === 0 ? (
