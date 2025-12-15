@@ -6,6 +6,7 @@
 import PlayerControls from "@/components/player/PlayerControls";
 import PlaybackSpeedSelector from "@/components/player/PlaybackSpeedSelector";
 import AudioChunkList from "@/components/player/AudioChunkList";
+import TimestampedNotes from "@/components/player/TimestampedNotes";
 import Card from "@/components/ui/Card";
 import Spinner from "@/components/ui/Spinner";
 
@@ -108,24 +109,18 @@ export default function Player({
         </div>
       ) : null}
 
-      {/* Note Taking UI */}
-      <div className="w-full max-w-2xl mt-8">
-        <h4 className="text-lg font-semibold mb-2 text-purple-300">Your Notes for this Part:</h4>
-        <textarea
-          className="w-full h-24 p-3 rounded-lg bg-gray-900 text-white border border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none mb-2"
-          value={notesProps.note}
-          onChange={e => { notesProps.setNote(e.target.value); notesProps.setNoteSaved && notesProps.setNoteSaved(false); }}
-          placeholder={notesProps.noteFetching ? "Loading note..." : "Type your notes here..."}
-          disabled={notesProps.noteFetching}
-        />
-        <button
-          className="px-4 py-2 mb-5 bg-purple-600 hover:bg-purple-700 rounded-lg transition text-white font-semibold disabled:bg-gray-600"
-          onClick={notesProps.saveNote}
-          disabled={notesProps.noteLoading || notesProps.noteFetching || !notesProps.note.trim()}
-        >
-          {notesProps.noteLoading ? "Saving..." : notesProps.noteSaved ? "Saved!" : "Save Note"}
-        </button>
-      </div>
+      {/* Timestamped Notes UI */}
+      <TimestampedNotes
+        book_name={chapterData.book_name}
+        chapter_num={chapterData.chapter_num}
+        chunk_index={currentChunkIndex}
+        audioRef={audioRef}
+        onSeek={(timestamp) => {
+          if (audioRef.current) {
+            audioRef.current.play();
+          }
+        }}
+      />
 
       {/* Audio Player */}
       {currentChunk?.audio_url && (
@@ -156,15 +151,35 @@ export default function Player({
           )}
 
           {/* Navigation Controls */}
-          {/* <PlayerControls
+          <PlayerControls
             isPlaying={isPlaying}
-            onPlay={() => audioPlayer.play()}
-            onPause={() => audioPlayer.pause()}
+            onPlay={() => {
+              if (audioRef.current) audioRef.current.play();
+            }}
+            onPause={() => {
+              if (audioRef.current) audioRef.current.pause();
+            }}
             onNext={handleNext}
             onPrevious={handlePrevious}
+            onSkipForward={() => {
+              if (audioRef.current) {
+                audioRef.current.currentTime = Math.min(
+                  audioRef.current.currentTime + 30,
+                  audioRef.current.duration
+                );
+              }
+            }}
+            onSkipBackward={() => {
+              if (audioRef.current) {
+                audioRef.current.currentTime = Math.max(
+                  audioRef.current.currentTime - 30,
+                  0
+                );
+              }
+            }}
             disableNext={currentChunkIndex === chapterData.audio_script.length - 1}
             disablePrevious={currentChunkIndex === 0}
-          /> */}
+          />
         </div>
       )}
 

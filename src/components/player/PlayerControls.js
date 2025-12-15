@@ -8,16 +8,25 @@ export default function PlayerControls({
   onNext,
   onPrevious,
   disableNext,
-  disablePrevious
+  disablePrevious,
+  onSkipBackward,
+  onSkipForward
 }) {
   return (
-    <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 mt-4">
+    <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-4">
       <button
         onClick={onPrevious}
         disabled={disablePrevious}
-        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition text-sm sm:text-base"
+        className="px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition text-sm"
       >
         ← Previous
+      </button>
+      <button
+        onClick={onSkipBackward}
+        className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition text-sm font-semibold"
+        title="Skip backward 30 seconds"
+      >
+        -30s
       </button>
       {isPlaying ? (
         <button
@@ -35,9 +44,16 @@ export default function PlayerControls({
         </button>
       )}
       <button
+        onClick={onSkipForward}
+        className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition text-sm font-semibold"
+        title="Skip forward 30 seconds"
+      >
+        +30s
+      </button>
+      <button
         onClick={onNext}
         disabled={disableNext}
-        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition text-sm sm:text-base"
+        className="px-3 py-2 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition text-sm"
       >
         Next →
       </button>

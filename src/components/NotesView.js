@@ -59,9 +59,17 @@ export default function NotesView({ onNavigateToAudio }) {
       onNavigateToAudio({
         book_name: note.book_name,
         chapter_num: note.chapter_num,
-        chunk_index: note.chunk_index
+        chunk_index: note.chunk_index,
+        audio_timestamp: note.audio_timestamp // Pass timestamp to seek to
       });
     }
+  };
+
+  const formatTime = (seconds) => {
+    if (seconds === null || seconds === undefined) return null;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getUniqueBooks = () => {
@@ -183,15 +191,20 @@ export default function NotesView({ onNavigateToAudio }) {
                       <span className="text-gray-400 text-xs">
                         Chapter {note.chapter_num} • Chunk {note.chunk_index + 1}
                       </span>
+                      {note.audio_timestamp !== null && note.audio_timestamp !== undefined && (
+                        <span className="text-purple-400 text-xs font-mono">
+                          ⏱️ {formatTime(note.audio_timestamp)}
+                        </span>
+                      )}
                     </div>
                     
                     <div className="bg-gray-900/50 border border-gray-700/50 p-3 rounded-lg mb-3">
                       <p className="text-gray-200 whitespace-pre-wrap text-sm leading-relaxed">{note.note}</p>
                     </div>
 
-                    {note.timestamp && (
+                    {note.created_at && (
                       <p className="text-xs text-gray-500">
-                        {new Date(note.timestamp).toLocaleString()}
+                        {new Date(note.created_at).toLocaleString()}
                       </p>
                     )}
                   </div>
@@ -200,8 +213,9 @@ export default function NotesView({ onNavigateToAudio }) {
                     <Button
                       onClick={() => handlePlayAudio(note)}
                       className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-purple-500/50"
+                      title={note.audio_timestamp !== null ? `Jump to ${formatTime(note.audio_timestamp)}` : 'Play audio'}
                     >
-                      ▶ Play Audio
+                      {note.audio_timestamp !== null ? '⏱️ Jump & Play' : '▶ Play Audio'}
                     </Button>
                   </div>
                 </div>

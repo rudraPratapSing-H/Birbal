@@ -116,7 +116,7 @@ function HomeContent() {
   };
 
   // Navigate to audio from notes view
-  const handleNavigateToAudio = ({ book_name, chapter_num, chunk_index }) => {
+  const handleNavigateToAudio = ({ book_name, chapter_num, chunk_index, audio_timestamp }) => {
     // First, find the book
     const book = books.find(b => b.book_name === book_name);
     if (!book) {
@@ -142,6 +142,17 @@ function HomeContent() {
           setChapterData(data.data[0]);
           setCurrentChunkIndex(chunk_index);
           setIsPlaying(false);
+          
+          // If audio_timestamp is provided, seek to that time after a short delay
+          if (audio_timestamp !== null && audio_timestamp !== undefined) {
+            setTimeout(() => {
+              const audioElement = document.querySelector('audio');
+              if (audioElement) {
+                audioElement.currentTime = audio_timestamp;
+                audioElement.play();
+              }
+            }, 500);
+          }
         }
       })
       .catch((error) => console.error('Error fetching chapter:', error));

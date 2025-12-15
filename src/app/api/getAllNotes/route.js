@@ -19,6 +19,22 @@ export async function GET(request) {
     chapters.forEach(chapter => {
       if (chapter.audio_script && Array.isArray(chapter.audio_script)) {
         chapter.audio_script.forEach((chunk, index) => {
+          // New: Include timestamped notes
+          if (chunk.notes && Array.isArray(chunk.notes) && chunk.notes.length > 0) {
+            chunk.notes.forEach(timestampedNote => {
+              allNotes.push({
+                book_name: chapter.book_name,
+                chapter_num: chapter.chapter_num,
+                chunk_index: index,
+                note: timestampedNote.text,
+                audio_url: chunk.audio_url,
+                audio_timestamp: timestampedNote.timestamp, // Time in audio
+                created_at: timestampedNote.created_at,
+                timestamp: timestampedNote.created_at
+              });
+            });
+          }
+          // Old: Keep backward compatibility with single note field
           if (chunk.note && chunk.note.trim() !== "") {
             allNotes.push({
               book_name: chapter.book_name,
@@ -26,6 +42,7 @@ export async function GET(request) {
               chunk_index: index,
               note: chunk.note,
               audio_url: chunk.audio_url,
+              audio_timestamp: null, // No audio timestamp for old notes
               timestamp: chapter.updated_at || chapter.created_at
             });
           }

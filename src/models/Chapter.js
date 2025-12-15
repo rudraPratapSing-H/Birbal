@@ -1,9 +1,16 @@
 import mongoose from 'mongoose';
-const AudioScriptChunkSchema = new mongoose.Schema({
 
+const NoteSchema = new mongoose.Schema({
+  text: { type: String, required: true },
+  timestamp: { type: Number, required: true }, // Time in seconds
+  created_at: { type: Date, default: Date.now }
+}, { _id: true });
+
+const AudioScriptChunkSchema = new mongoose.Schema({
   ssml: { type: String },
   audio_url: { type: String },
-  note: { type: String ,default: ""},
+  note: { type: String, default: "" }, // Keep for backward compatibility
+  notes: { type: [NoteSchema], default: [] }, // New: Array of notes with timestamps
   error: { type: String },
 }, { _id: false });
 

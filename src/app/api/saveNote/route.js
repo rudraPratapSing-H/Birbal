@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { withCORS } from "../cors";
 
 
-// GET: fetch note for a specific chunk
+// GET: fetch notes for a specific chunk
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const book_name = searchParams.get("book_name");
@@ -30,13 +30,18 @@ export async function GET(req) {
   }
 
   const chunk = chapter.audio_script[idx];
-  return withCORS(NextResponse.json({ success: true, note: chunk.note ?? "", chunk }));
+  return withCORS(NextResponse.json({ 
+    success: true, 
+    note: chunk.note ?? "", // Old single note for backward compatibility
+    notes: chunk.notes || [], // New: Array of notes with timestamps
+    chunk 
+  }));
 }
 
-// POST: save note for a specific chunk
+// POST: save note for a specific chunk with timestamp
 export async function POST(req) {
-  const { book_name, chapter_num, chunk_index, note } = await req.json();
-  if (!book_name || !chapter_num || chunk_index === undefined || note === undefined) {
+  const { book_name, chapter_num, chunk_index, note, timestamp } = await req.json();
+  if (!book_name || !chapter_num || chunk_index === undefined) {
     return withCORS(NextResponse.json({ success: false, error: "Missing parameters" }, { status: 400 }));
   }
 
@@ -51,7 +56,21 @@ export async function POST(req) {
     return withCORS(NextResponse.json({ success: false, error: "Chunk not found" }, { status: 404 }));
   }
 
-  chapter.audio_script[idx].note = note;
+  // If timestamp is provided, add to notes array (new feature)
+  if (timestamp !== undefined && note) {
+    if (!chapter.audio_script[idx].notes) {
+      chapter.audio_script[idx].notes = [];
+    }
+    chapter.audio_script[idx].notes.push({
+      text: note,
+      timestamp: timestamp,
+      created_at: new Date()
+    });
+  } else if (note !== undefined) {
+    // Backward compatibility: save to old single note field
+    chapter.audio_script[idx].note = note;
+  }
+
   chapter.markModified("audio_script");
   await chapter.save();
   return withCORS(NextResponse.json({ success: true }));
