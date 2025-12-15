@@ -28,7 +28,7 @@ export default function PlayerControls({
       >
         -30s
       </button>
-      {isPlaying ? (
+      {/* {isPlaying ? (
         <button
           onClick={onPause}
           className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg transition text-sm sm:text-base"
@@ -42,7 +42,7 @@ export default function PlayerControls({
         >
           Play
         </button>
-      )}
+      )} */}
       <button
         onClick={onSkipForward}
         className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition text-sm font-semibold"
