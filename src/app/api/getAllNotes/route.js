@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Chapter from "@/models/Chapter";
 import { withCORS } from "../cors";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET(request) {
   try {
+    const session = await getServerSession(authOptions);
     await dbConnect();
     const { searchParams } = new URL(request.url);
     const book_name = searchParams.get("book_name");
@@ -22,16 +25,22 @@ export async function GET(request) {
           // New: Include timestamped notes
           if (chunk.notes && Array.isArray(chunk.notes) && chunk.notes.length > 0) {
             chunk.notes.forEach(timestampedNote => {
-              allNotes.push({
-                book_name: chapter.book_name,
-                chapter_num: chapter.chapter_num,
-                chunk_index: index,
-                note: timestampedNote.text,
-                audio_url: chunk.audio_url,
-                audio_timestamp: timestampedNote.timestamp, // Time in audio
-                created_at: timestampedNote.created_at,
-                timestamp: timestampedNote.created_at
-              });
+              // Filter based on user session
+              const isOwnNote = session?.user?.id && timestampedNote.userId && timestampedNote.userId.toString() === session.user.id;
+              const isLegacyPublicNote = !timestampedNote.userId;
+
+              if (isOwnNote || isLegacyPublicNote) {
+                allNotes.push({
+                  book_name: chapter.book_name,
+                  chapter_num: chapter.chapter_num,
+                  chunk_index: index,
+                  note: timestampedNote.text,
+                  audio_url: chunk.audio_url,
+                  audio_timestamp: timestampedNote.timestamp, // Time in audio
+                  created_at: timestampedNote.created_at,
+                  timestamp: timestampedNote.created_at
+                });
+              }
             });
           }
           // Old: Keep backward compatibility with single note field

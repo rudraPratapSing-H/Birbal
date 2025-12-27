@@ -9,6 +9,7 @@ import BookCard from "@/components/books/BookCard";
 import ChapterList from "@/components/books/ChapterList";
 import NotesView from "@/components/NotesView";
 
+import LoginButton from "@/components/LoginButton";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Spinner from "@/components/ui/Spinner";
@@ -168,7 +169,7 @@ function HomeContent() {
           <h1 className="text-3xl sm:text-4xl font-bold text-center bg-clip-text text-transparent bg-linear-to-r from-purple-400 to-pink-600">
             Audio Book Library
           </h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center flex-wrap justify-center">
             <Button
               onClick={() => setViewMode('library')}
               className={`px-4 py-2 ${viewMode === 'library' ? 'bg-purple-600' : 'bg-gray-600'} hover:bg-purple-700 text-white`}
@@ -181,6 +182,7 @@ function HomeContent() {
             >
               📝 My Notes
             </Button>
+            <LoginButton />
           </div>
         </div>
         {/* Notes View */}

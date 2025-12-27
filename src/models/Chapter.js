@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
+import { userAgent } from 'next/server';
 
 const NoteSchema = new mongoose.Schema({
   text: { type: String, required: true },
   timestamp: { type: Number, required: true }, // Time in seconds
-  created_at: { type: Date, default: Date.now }
+  created_at: { type: Date, default: Date.now },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { _id: true });
 
 const AudioScriptChunkSchema = new mongoose.Schema({
